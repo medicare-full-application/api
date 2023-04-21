@@ -18,7 +18,7 @@ const admin = "Admin";
 //REGISTER
 router.post("/register/:userType", addToAuthTable, async (req, res) => {
   const userType = req.params.userType;
-  console.log(req);
+
   try {
     if (userType === doctor) {
       // const newDoctor = new Doctor({
@@ -79,7 +79,10 @@ router.post("/login", async (req, res) => {
       email: req.body.email,
     });
 
-    !user && res.status(401).json({ msg: "Invalid Email" });
+    if (!user) {
+      res.status(401).json({ msg: "Invalid Email" });
+      return;
+    }
 
     const hashedPassword = CryptoJS.AES.decrypt(
       user.password,
@@ -90,8 +93,10 @@ router.post("/login", async (req, res) => {
 
     const inputPassword = req.body.password;
 
-    originalPassword != inputPassword &&
+    if (originalPassword != inputPassword) {
       res.status(401).json({ msg: "Invalid Password" });
+      return;
+    }
 
     const accessToken = jwt.sign(
       {
@@ -102,18 +107,16 @@ router.post("/login", async (req, res) => {
       { expiresIn: "3d" }
     );
 
-    const userData = await getUserDetails(user.userType ,user.email);
+    const userData = await getUserDetails(user.userType, user.email);
 
     const { userType, ...others } = user._doc;
 
-    if(userData != null){
+    if (userData != null) {
       // const { password, ...others } = user._doc;
       res.status(200).json({ userType, userData, accessToken });
-    }else {
+    } else {
       res.status(501).json("User not found in specific table!");
     }
-
-    
   } catch (err) {
     res.status(500).json(err);
   }

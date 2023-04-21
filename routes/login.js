@@ -20,6 +20,7 @@ const addToAuthTable = async (req, res, next) => {
   } catch (error) {
     if(error.code === 11000){
         res.status(422).send({ success: false, message: 'User already exist! Please, Check Your email.' });
+        return;
     }
     // Some other error
     return res.status(422).send(error);
