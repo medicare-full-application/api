@@ -104,9 +104,11 @@ router.post("/login", async (req, res) => {
 
     const userData = await getUserDetails(user.userType ,user.email);
 
+    const { userType, ...others } = user._doc;
+
     if(userData != null){
       // const { password, ...others } = user._doc;
-      res.status(200).json({ userData, accessToken });
+      res.status(200).json({ userType, userData, accessToken });
     }else {
       res.status(501).json("User not found in specific table!");
     }
