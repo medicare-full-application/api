@@ -24,6 +24,7 @@ const PatientSchema = new mongoose.Schema(
     },
     noOfChildren: { type: Number, default: 0 },
     childrenIds: { type: Array },
+    doctorIds: { type: Array },
   },
   { timestamps: true }
 );

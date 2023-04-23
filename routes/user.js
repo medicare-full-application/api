@@ -3,6 +3,7 @@ const Doctor = require("../models/Doctor");
 const Patient = require("../models/Patient");
 const Pharmacist = require("../models/Pharmacist");
 const Admin = require("../models/Admin");
+const Auth = require("../models/Auth");
 const {
   verifyToken,
   verifyTokenAndAuthorization,
@@ -11,6 +12,7 @@ const {
 
 const router = require("express").Router();
 const CryptoJS = require("crypto-js");
+const mongoose = require("mongoose");
 
 const doctor = "Doctor";
 const patient = "Patient";
@@ -23,8 +25,67 @@ const admin = "Admin";
 //     else if(userType === admin){}
 //     else{}
 
-//UPDATE USER
-router.put("/:id/:userType", verifyToken, async (req, res) => {
+//UPDATE EMAIL
+router.put("/email/:id/:loginId/:userType", verifyToken, async (req, res) => {
+  const userType = req.params.userType;
+
+  try {
+    const updatedLoginUser = await Auth.findByIdAndUpdate(
+      req.params.loginId,
+      {
+        $set: req.body,
+      },
+      { new: false }
+    );
+
+    if (userType === doctor) {
+      const updatedUser = await Doctor.findByIdAndUpdate(
+        req.params.id,
+        {
+          $set: req.body,
+        },
+        { new: true }
+      );
+      res.status(200).json(updatedUser);
+    } else if (userType === patient) {
+      const updatedUser = await Patient.findByIdAndUpdate(
+        req.params.id,
+        {
+          $set: req.body,
+        },
+        { new: true }
+      );
+      res.status(200).json(updatedUser);
+    } else if (userType === pharmacist) {
+      const updatedUser = await Pharmacist.findByIdAndUpdate(
+        req.params.id,
+        {
+          $set: req.body,
+        },
+        { new: true }
+      );
+      res.status(200).json(updatedUser);
+    } else if (userType === admin) {
+      const updatedUser = await Admin.findByIdAndUpdate(
+        req.params.id,
+        {
+          $set: req.body,
+        },
+        { new: true }
+      );
+      res.status(200).json(updatedUser);
+    } else {
+      res.status(401).json("Invalid usertype!");
+      return;
+    }
+  } catch (error) {
+    // res.status(500).json({ msg: "Email update failed!" });
+    res.status(500).json(error);
+  }
+});
+
+//UPDATE PASSWORD
+router.put("/password/:loginId", verifyToken, async (req, res) => {
   if (req.body.password) {
     req.body.password = CryptoJS.AES.encrypt(
       req.body.password,
@@ -32,6 +93,22 @@ router.put("/:id/:userType", verifyToken, async (req, res) => {
     ).toString();
   }
 
+  try {
+    const updatedUser = await Auth.findByIdAndUpdate(
+      req.params.loginId,
+      {
+        $set: req.body,
+      },
+      { new: true }
+    );
+    res.status(200).json({ msg: "Password Updated!" });
+  } catch (error) {
+    res.status(500).json({ msg: "Password update failed!" });
+  }
+});
+
+//UPDATE USER
+router.put("/:id/:userType", verifyToken, async (req, res) => {
   const userType = req.params.userType;
 
   try {
@@ -233,5 +310,75 @@ router.get("/stats/:userType", verifyToken, async (req, res) => {
     res.status(500).json(err);
   }
 });
+
+router.get("/stats/income/:id", verifyToken, async (req, res) => {
+  const date = new Date();
+  const thisYear = new Date(date.getFullYear(), 0, 1); // set to beginning of current year
+  const id = req.params.id;
+
+  try {
+    const data = await Doctor.aggregate([
+      {
+        $match: {
+          _id: mongoose.Types.ObjectId(id),
+          createdAt: { $gte: thisYear },
+        },
+      },
+      {
+        $project: {
+          result: { $multiply: ["$totalPatients", "$hourRate"] },
+        },
+      },
+    ]);
+    res.status(200).json(data);
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
+
+router.get(
+  "/stats/income/:id/:year/:month",
+  verifyToken,
+  async (req, res) => {
+    const { id, year, month } = req.params;
+    const startOfMonth = new Date(year, month - 1, 1);
+    const endOfMonth = new Date(year, month, 0);
+
+    try {
+      const data = await Doctor.aggregate([
+        {
+          $match: {
+            _id: mongoose.Types.ObjectId(id),
+            createdAt: {
+              $gte: startOfMonth,
+              $lte: endOfMonth,
+            },
+          },
+        },
+        {
+          $group: {
+            _id: { $dayOfMonth: "$createdAt" },
+            totalIncome: {
+              $sum: { $multiply: ["$noOfOngoingPatients", "$hourRate"] },
+            },
+          },
+        },
+        {
+          $sort: { _id: 1 },
+        },
+        {
+          $project: {
+            _id: 0,
+            day: "$_id",
+            totalIncome: 1,
+          },
+        },
+      ]);
+      res.status(200).json(data);
+    } catch (err) {
+      res.status(500).json(err);
+    }
+  }
+);
 
 module.exports = router;
