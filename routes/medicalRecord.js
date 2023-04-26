@@ -55,6 +55,16 @@ router.get("/find/:id", async (req, res) => {
   }
 });
 
+//GET Medical Record by recordFor
+router.get("/find/patient/:recordFor", async (req, res) => {
+  try {
+    const medicalRecord = await MedicalRecord.findOne({ recordFor: req.params.recordFor });
+    res.status(200).json(medicalRecord);
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
+
 //GET ALL Medical Records
 router.get("/", async (req, res) => {
   const qNew = req.query.new;

@@ -6,6 +6,7 @@ const MedicalRecordSchema = new mongoose.Schema(
     // prescription: { type: Array, required: true },
     prescription: { type: String, required: true },
     medicalReport: { type: String },
+    pharmacyNote: { type: String },
     date: { type: Date, default: Date.now },
     recordBy: { type: String, required: true }, //doctor Id
     recordFor: { type: String, required: true }, //patient Id
