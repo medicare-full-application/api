@@ -75,7 +75,7 @@ router.put("/email/:id/:loginId/:userType", verifyToken, async (req, res) => {
       );
       res.status(200).json(updatedUser);
     } else {
-      res.status(401).json("Invalid usertype!");
+      res.status(500).json("Invalid usertype!");
       return;
     }
   } catch (error) {
@@ -149,7 +149,7 @@ router.put("/:id/:userType", verifyToken, async (req, res) => {
       );
       res.status(200).json(updatedUser);
     } else {
-      res.status(401).json("Invalid usertype!");
+      res.status(500).json("Invalid usertype!");
     }
   } catch (err) {
     res.status(500).json(err);
@@ -170,7 +170,7 @@ router.delete("/:id/:userType", verifyToken, async (req, res) => {
     } else if (userType === pharmacist) {
     } else if (userType === admin) {
     } else {
-      res.status(401).json("Invalid usertype!");
+      res.status(500).json("Invalid usertype!");
     }
   } catch (err) {
     res.status(500).json(err);
@@ -194,7 +194,7 @@ router.get("/find/:id/:userType", verifyToken, async (req, res) => {
       const user = await Admin.findById(req.params.id);
       res.status(200).json(user);
     } else {
-      res.status(401).json("Invalid usertype!");
+      res.status(500).json("Invalid usertype!");
     }
   } catch (err) {
     res.status(500).json(err);
@@ -227,7 +227,7 @@ router.get("/:userType", verifyToken, async (req, res) => {
         : await Admin.find();
       res.status(200).json(users);
     } else {
-      res.status(401).json("Invalid usertype!");
+      res.status(500).json("Invalid usertype!");
     }
   } catch (err) {
     res.status(500).json(err);
@@ -336,49 +336,134 @@ router.get("/stats/income/:id", verifyToken, async (req, res) => {
   }
 });
 
-router.get(
-  "/stats/income/:id/:year/:month",
-  verifyToken,
-  async (req, res) => {
-    const { id, year, month } = req.params;
-    const startOfMonth = new Date(year, month - 1, 1);
-    const endOfMonth = new Date(year, month, 0);
+router.get("/stats/income/:id/:year/:month", verifyToken, async (req, res) => {
+  const { id, year, month } = req.params;
+  const startOfMonth = new Date(year, month - 1, 1);
+  const endOfMonth = new Date(year, month, 0);
 
-    try {
-      const data = await Doctor.aggregate([
-        {
-          $match: {
-            _id: mongoose.Types.ObjectId(id),
-            createdAt: {
-              $gte: startOfMonth,
-              $lte: endOfMonth,
-            },
+  try {
+    const data = await Doctor.aggregate([
+      {
+        $match: {
+          _id: mongoose.Types.ObjectId(id),
+          createdAt: {
+            $gte: startOfMonth,
+            $lte: endOfMonth,
           },
         },
-        {
-          $group: {
-            _id: { $dayOfMonth: "$createdAt" },
-            totalIncome: {
-              $sum: { $multiply: ["$noOfOngoingPatients", "$hourRate"] },
-            },
+      },
+      {
+        $group: {
+          _id: { $dayOfMonth: "$createdAt" },
+          totalIncome: {
+            $sum: { $multiply: ["$noOfOngoingPatients", "$hourRate"] },
           },
         },
-        {
-          $sort: { _id: 1 },
+      },
+      {
+        $sort: { _id: 1 },
+      },
+      {
+        $project: {
+          _id: 0,
+          day: "$_id",
+          totalIncome: 1,
         },
-        {
-          $project: {
-            _id: 0,
-            day: "$_id",
-            totalIncome: 1,
-          },
-        },
-      ]);
-      res.status(200).json(data);
-    } catch (err) {
-      res.status(500).json(err);
-    }
+      },
+    ]);
+    res.status(200).json(data);
+  } catch (err) {
+    res.status(500).json(err);
   }
-);
+});
+
+//Add Patient to Doctor
+router.put("/doctor/requests/:id", async (req, res) => {
+  let flag = false;
+
+  try {
+    const doctor = await Doctor.findById(req.params.id);
+
+    doctor.requests.map(async (item) => {
+      if (item.patientId == req.body.patientId) {
+        flag = true;
+      }
+    });
+
+    if (flag) {
+      const updatedUser = await Doctor.findOneAndUpdate(
+        { _id: req.params.id, "requests.patientId": req.body.patientId },
+        { $set: { "requests.$.isRequest": req.body.isRequest } },
+        { new: true }
+      );
+      res.status(200).json({ msg: "Request update saved!", data: updatedUser });
+      return;
+    } else {
+      const updatedUser = await Doctor.findOneAndUpdate(
+        { _id: req.params.id },
+        {
+          $push: {
+            requests: {
+              patientId: req.body.patientId,
+              isRequest: req.body.isRequest,
+            },
+          },
+        },
+        { new: true }
+      );
+      res.status(200).json({ msg: "Request update saved!", data: updatedUser });
+      return;
+    }
+  } catch (error) {
+    res.status(500).json({ msg: "Request update not saved!" });
+  }
+});
+
+//Add Doctor to Patient
+router.put("/patient/requests/:patientId", async (req, res) => {
+  let flag = false;
+
+  try {
+    const patient = await Patient.findById(req.params.patientId);
+
+    console.log(patient);
+
+    patient.requests.map(async (item) => {
+      if (item.doctorId == req.body.doctorId) {
+        flag = true;
+
+      }
+    });
+
+    console.log(flag);
+
+    if (flag) {
+      const updatedUser = await Patient.findOneAndUpdate(
+        { _id: req.params.patientId, "requests.doctorId": req.body.doctorId },
+        { $set: { "requests.$.isRequest": req.body.isRequest } },
+        { new: true }
+      );
+      res.status(200).json({ msg: "Request update saved!", data: updatedUser });
+      return;
+    } else {
+      const updatedUser = await Patient.findOneAndUpdate(
+        { _id: req.params.patientId },
+        {
+          $push: {
+            requests: {
+              doctorId: req.body.doctorId,
+              isRequest: req.body.isRequest,
+            },
+          },
+        },
+        { new: true }
+      );
+      res.status(200).json({ msg: "Request update saved!", data: updatedUser });
+      return;
+    }
+  } catch (error) {
+    res.status(500).json({ msg: "Request update not saved!" });
+  }
+});
 
 module.exports = router;

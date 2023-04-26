@@ -1,5 +1,10 @@
 const mongoose = require("mongoose");
 
+const DoctorRequestSchema = new mongoose.Schema({
+  doctorId: { type: String },
+  isRequest: { type: String },
+});
+
 const PatientSchema = new mongoose.Schema(
   {
     firstName: { type: String, required: true },
@@ -24,7 +29,7 @@ const PatientSchema = new mongoose.Schema(
     },
     noOfChildren: { type: Number, default: 0 },
     childrenIds: { type: Array },
-    doctorIds: { type: Array },
+    requests: { type: [DoctorRequestSchema] },
   },
   { timestamps: true }
 );

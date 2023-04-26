@@ -1,5 +1,10 @@
 const mongoose = require("mongoose");
 
+const RequestSchema = new mongoose.Schema({
+  patientId: { type: String },
+  isRequest: { type: String }, //Sent, Decline, Accept
+});
+
 const DoctorSchema = new mongoose.Schema(
   {
     firstName: { type: String, required: true },
@@ -21,6 +26,7 @@ const DoctorSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true },
     medicalRegNo: { type: String },
     contactNo: { type: String, required: true },
+    requests: { type: [RequestSchema] },
   },
   { timestamps: true }
 );
