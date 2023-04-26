@@ -377,6 +377,46 @@ router.get("/stats/income/:id/:year/:month", verifyToken, async (req, res) => {
   }
 });
 
+//Current Date
+router.get("/stats/income/month/:id", verifyToken, async (req, res) => {
+  const { id } = req.params;
+  const today = new Date();
+  const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+
+  try {
+    const data = await Doctor.aggregate([
+      {
+        $match: {
+          _id: mongoose.Types.ObjectId(id),
+          createdAt: {
+            $gte: startOfDay,
+            $lt: endOfDay,
+          },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalIncome: {
+            $sum: { $multiply: ["$noOfOngoingPatients", "$hourRate"] },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          totalIncome: 1,
+        },
+      },
+    ]);
+    res.status(200).json(data);
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
+
+
 //Add Patient to Doctor
 router.put("/doctor/requests/:id", async (req, res) => {
   let flag = false;
