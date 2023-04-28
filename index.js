@@ -5,6 +5,7 @@ const dotenv = require("dotenv");
 const userRoute = require("./routes/user");
 const authRoute = require("./routes/auth");
 const articleRoute = require("./routes/article");
+const newsRoute = require("./routes/news");
 const medicalRecordRoute = require("./routes/medicalRecord");
 
 const cors = require("cors");
@@ -23,7 +24,7 @@ app.use(express.json());
 app.use("/api/v1/auth", authRoute);
 app.use("/api/v1/user", userRoute);
 app.use("/api/v1/article", articleRoute);
-app.use("/api/v1/article", articleRoute);
+app.use("/api/v1/news", newsRoute);
 app.use("/api/v1/medicalRecord", medicalRecordRoute);
 
 app.listen(process.env.PORT || 5000, () => {

@@ -1,4 +1,5 @@
 const router = require("express").Router();
+const uuid = require('uuid');
 const User = require("../models/User");
 const Doctor = require("../models/Doctor");
 const Patient = require("../models/Patient");
@@ -69,6 +70,37 @@ router.post("/register/:userType", addToAuthTable, async (req, res) => {
     res.status(500).json(error);
   }
 });
+
+//CHILD REGISTER
+router.post("/register/child/:parentId", addToAuthTable, async (req, res) => {
+  const UUID = uuid.v4();
+  const patient = req.body.patient;
+  const patientData = { ...patient, childOrNot: true, NIC:UUID };
+  try {
+    const newPatient = new Patient(patientData);
+    const savedUser = await newPatient.save();
+
+    const updatedUser = await Patient.findOneAndUpdate(
+      { _id: req.params.parentId },
+      {
+        $push: {
+          childrenIds: savedUser._id
+        },
+      },
+      { new: true }
+    );
+    res.status(201).json(updatedUser);
+  } catch (error) {
+    try {
+      await Auth.findByIdAndDelete(req.user._id);
+      console.log("Auth save user has deleted");
+    } catch (err) {
+      console.log("Auth save user has not been deleted");
+      // res.status(500).json(err);
+    }
+    res.status(500).json(error);
+  }
+});
 // req.params.id
 
 //LOGIN
@@ -112,9 +144,9 @@ router.post("/login", async (req, res) => {
     const { userType, _id, ...others } = user._doc;
 
     const login = {
-      _id:_id,
-      userType:userType
-    }
+      _id: _id,
+      userType: userType,
+    };
 
     if (userData != null) {
       // const { password, ...others } = user._doc;

@@ -11,7 +11,7 @@ const PatientSchema = new mongoose.Schema(
     lastName: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     address: { type: String },
-    NIC: { type: String, unique: true, required: false },
+    NIC: { type: String },
     dateOfBirth: { type: Date, required: true },
     imageUrl: { type: String },
     contactNo: { type: String, required: true },
