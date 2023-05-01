@@ -26,8 +26,8 @@ const DoctorSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true },
     medicalRegNo: { type: String },
     contactNo: { type: String, required: true },
-    // startTime: { type: Time },
-    // endTime: { type: Time },
+    startTime: { type: String },
+    endTime: { type: String },
     requests: { type: [RequestSchema] },
   },
   { timestamps: true }

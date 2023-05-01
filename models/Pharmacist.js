@@ -7,6 +7,10 @@ const PharmacistSchema = new mongoose.Schema(
     address: { type: String },
     pharmacyRegNo: { type: String, required: true },
     contactNo: { type: String, required: true },
+    userStatus: {
+      type: Boolean,
+      default: true,
+    },
   },
   { timestamps: true }
 );

@@ -4,6 +4,7 @@ const Patient = require("../models/Patient");
 const Pharmacist = require("../models/Pharmacist");
 const Admin = require("../models/Admin");
 const Auth = require("../models/Auth");
+const MedicalRecord = require("../models/MedicalRecord");
 const {
   verifyToken,
   verifyTokenAndAuthorization,
@@ -84,8 +85,22 @@ router.put("/email/:id/:loginId/:userType", verifyToken, async (req, res) => {
   }
 });
 
+// router.post("/email", verifyToken, async (req, res) => {
+
+//   try {
+//     const user = await Doctor.findById(req.params.id);
+
+    
+//       res.status(200).json(updatedUser);
+    
+//   } catch (error) {
+//     // res.status(500).json({ msg: "Email update failed!" });
+//     res.status(500).json(error);
+//   }
+// });
+
 //UPDATE PASSWORD
-router.put("/password/:loginId", verifyToken, async (req, res) => {
+router.put("/password/:loginId", async (req, res) => {
   if (req.body.password) {
     req.body.password = CryptoJS.AES.encrypt(
       req.body.password,
@@ -101,9 +116,9 @@ router.put("/password/:loginId", verifyToken, async (req, res) => {
       },
       { new: true }
     );
-    res.status(200).json({ msg: "Password Updated!" });
+    res.status(200).json({ msg: "Password Updated!", flag:true });
   } catch (error) {
-    res.status(500).json({ msg: "Password update failed!" });
+    res.status(500).json({ msg: "Password update failed!", flag:false });
   }
 });
 
@@ -272,11 +287,10 @@ router.get("/:userType", verifyToken, async (req, res) => {
 //   }
 // });
 
-router.post("/email/:userType", verifyToken, async (req, res) => {
-  const userType = req.params.userType;
+router.post("/email", async (req, res) => {
   console.log(req.body.email);
   try {
-    const user = await User.find({ email: req.body.email });
+    const user = await Auth.find({ email: req.body.email });
     // console.log(user);
     // const { password, ...others } = user._doc;
     res.status(200).json(user);
@@ -342,10 +356,11 @@ router.get("/stats/income/:id/:year/:month", verifyToken, async (req, res) => {
   const endOfMonth = new Date(year, month, 0);
 
   try {
-    const data = await Doctor.aggregate([
+    const data = await MedicalRecord.aggregate([
       {
         $match: {
-          _id: mongoose.Types.ObjectId(id),
+          // recordBy: mongoose.Types.ObjectId(id),
+          recordBy: id,
           createdAt: {
             $gte: startOfMonth,
             $lte: endOfMonth,
@@ -356,17 +371,25 @@ router.get("/stats/income/:id/:year/:month", verifyToken, async (req, res) => {
         $group: {
           _id: { $dayOfMonth: "$createdAt" },
           totalIncome: {
-            $sum: { $multiply: ["$noOfOngoingPatients", "$hourRate"] },
+            $sum: "$doctorFee",
           },
         },
       },
       {
-        $sort: { _id: 1 },
+        $group: {
+          _id: null,
+          totalIncome: {
+            $sum: "$totalIncome"
+          }
+        }
       },
+      // {
+      //   $sort: { _id: 1 },
+      // },
       {
         $project: {
           _id: 0,
-          day: "$_id",
+          // day: "$_id",
           totalIncome: 1,
         },
       },
@@ -385,10 +408,10 @@ router.get("/stats/income/month/:id", verifyToken, async (req, res) => {
   const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
 
   try {
-    const data = await Doctor.aggregate([
+    const data = await MedicalRecord.aggregate([
       {
         $match: {
-          _id: mongoose.Types.ObjectId(id),
+          recordBy: id,
           createdAt: {
             $gte: startOfDay,
             $lt: endOfDay,
@@ -399,9 +422,17 @@ router.get("/stats/income/month/:id", verifyToken, async (req, res) => {
         $group: {
           _id: null,
           totalIncome: {
-            $sum: { $multiply: ["$noOfOngoingPatients", "$hourRate"] },
+            $sum: "$doctorFee",
           },
         },
+      },
+      {
+        $group: {
+          _id: null,
+          totalIncome: {
+            $sum: "$totalIncome"
+          }
+        }
       },
       {
         $project: {

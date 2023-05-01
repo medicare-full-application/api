@@ -14,8 +14,7 @@ const MedicalRecordSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    doctorFee: { type: Number, required: true },
-    medicineFee: { type: Number, required: true },
+    doctorFee: { type: Number, required: true }
   },
   { timestamps: true }
 );
