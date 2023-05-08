@@ -71,7 +71,7 @@ router.post("/register/:userType", addToAuthTable, async (req, res) => {
 });
 
 //CHILD REGISTER
-router.post("/register/child/:parentId", addToAuthTable, async (req, res) => {
+router.post("/register/child/:parentId", async (req, res) => {
   const UUID = uuid.v4();
   const patient = req.body.patient;
   const patientData = { ...patient, childOrNot: true, NIC: UUID };
