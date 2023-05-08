@@ -1,6 +1,5 @@
 const router = require("express").Router();
-const uuid = require('uuid');
-const User = require("../models/User");
+const uuid = require("uuid");
 const Doctor = require("../models/Doctor");
 const Patient = require("../models/Patient");
 const Pharmacist = require("../models/Pharmacist");
@@ -75,7 +74,7 @@ router.post("/register/:userType", addToAuthTable, async (req, res) => {
 router.post("/register/child/:parentId", addToAuthTable, async (req, res) => {
   const UUID = uuid.v4();
   const patient = req.body.patient;
-  const patientData = { ...patient, childOrNot: true, NIC:UUID };
+  const patientData = { ...patient, childOrNot: true, NIC: UUID };
   try {
     const newPatient = new Patient(patientData);
     const savedUser = await newPatient.save();
@@ -83,8 +82,11 @@ router.post("/register/child/:parentId", addToAuthTable, async (req, res) => {
     const updatedUser = await Patient.findOneAndUpdate(
       { _id: req.params.parentId },
       {
+        $set: {
+          haveChildren: true,
+        },
         $push: {
-          childrenIds: savedUser._id
+          childrenIds: savedUser._id,
         },
       },
       { new: true }
@@ -127,6 +129,47 @@ router.post("/login", async (req, res) => {
 
     if (originalPassword != inputPassword) {
       res.status(401).json({ msg: "Invalid Password" });
+      return;
+    }
+
+    const accessToken = jwt.sign(
+      {
+        id: user._id,
+        userType: user.userType,
+      },
+      process.env.JWT_SEC,
+      { expiresIn: "3d" }
+    );
+
+    const userData = await getUserDetails(user.userType, user.email);
+
+    const { userType, _id, ...others } = user._doc;
+
+    const login = {
+      _id: _id,
+      userType: userType,
+    };
+
+    if (userData != null) {
+      // const { password, ...others } = user._doc;
+      res.status(200).json({ login, userData, accessToken });
+    } else {
+      res.status(501).json("User not found in specific table!");
+    }
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
+
+//Get Current User data
+router.post("/getCurrentUser", async (req, res) => {
+  try {
+    const user = await Auth.findOne({
+      email: req.body.email,
+    });
+
+    if (!user) {
+      res.status(401).json({ msg: "Invalid Email" });
       return;
     }
 
